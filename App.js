@@ -18,6 +18,9 @@ const App = () => {
     <NavigationContainer>
       {/* <AuthStack /> */}
       <Text>testing</Text>
+      <Text>testing</Text>
+      <Text>testing</Text>
+      <Text>testing</Text>
     </NavigationContainer>
   );
 };

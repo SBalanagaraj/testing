@@ -21,6 +21,10 @@ const App = () => {
       <Text>testing</Text>
       <Text>testing</Text>
       <Text>testing</Text>
+      <Text>testing</Text>
+      <Text>testing</Text>
+      <Text>testing</Text>
+      <Text>testing</Text>
     </NavigationContainer>
   );
 };

@@ -1,12 +1,6 @@
 // src/screens/Favorites.js
 import React, {useEffect, useState} from 'react';
-import {
-  View,
-  FlatList,
-  Text,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
+import {Text, Dimensions} from 'react-native';
 import UserItem from '../Components/UserItem';
 import {getFavorites, saveFavorites} from '../Utiles/Storage';
 import Buttons from '../Components/Button';

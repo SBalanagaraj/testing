@@ -56,7 +56,7 @@ const Favorites = ({navigation}) => {
       />
       <Buttons
         altStyle={{margin: 20}}
-        title={'Go Back'}
+        title={'Go Back orgin'}
         onPress={() => navigation.goBack()}
       />
     </>

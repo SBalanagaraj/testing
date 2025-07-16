@@ -17,14 +17,8 @@ const App = () => {
   return (
     <NavigationContainer>
       {/* <AuthStack /> */}
-      <Text>testing</Text>
-      <Text>testing</Text>
-      <Text>testing</Text>
-      <Text>testing</Text>
-      <Text>testing</Text>
-      <Text>testing</Text>
-      <Text>testing</Text>
-      <Text>testing</Text>
+    
+      <Text>succesfully implemented the changes</Text>
     </NavigationContainer>
   );
 };

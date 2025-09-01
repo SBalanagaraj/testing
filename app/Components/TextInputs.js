@@ -2,17 +2,18 @@ import {Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import React, {useState} from 'react';
 import {appColors} from '../Utiles/appColors';
 import {fonts} from '../Utiles/appFont';
-import {Ionicons} from '@react-native-vector-icons/ionicons';
 import {Entypo} from '@react-native-vector-icons/entypo';
+import {fontScalling} from '../Utiles/HelperFunction';
 
 const TextInputs = ({
   fieldName = '',
   placeholder,
   value,
-  onchange,
+  onChange,
   secureTextEntry,
   errorText = '',
   altStyle = {},
+  required = false,
 }) => {
   const [visible, setVisible] = useState(false);
   return (
@@ -25,6 +26,19 @@ const TextInputs = ({
             fontFamily: fonts.GR_semiBold,
           }}>
           {fieldName}
+
+          {required ? (
+            <Text
+              style={{
+                fontSize: 16,
+                color: appColors.pink,
+                fontFamily: fonts.GR_semiBold,
+              }}>
+              *
+            </Text>
+          ) : (
+            ''
+          )}
         </Text>
       )}
       <Pressable
@@ -38,7 +52,7 @@ const TextInputs = ({
           style={{flex: 1}}
           placeholder={placeholder}
           value={value}
-          onChangeText={onchange}
+          onChangeText={onChange}
           secureTextEntry={secureTextEntry}
         />
         {secureTextEntry && (
@@ -57,8 +71,8 @@ const TextInputs = ({
       {errorText != '' && (
         <Text
           style={{
-            fontSize: 10,
-            color: appColors.red,
+            fontSize: fontScalling(1.7),
+            color: appColors.pink,
             fontFamily: fonts.interBold,
           }}>
           {errorText}

@@ -9,10 +9,15 @@ import {useNavigation} from '@react-navigation/native';
 const HeaderBlock = ({title = '', leftIcon = false}) => {
   const navigation = useNavigation();
   return (
-    <View style={{flexDirection: 'row', alignItems: 'center'}}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: leftIcon ? 'flex-start' : 'center',
+      }}>
       {leftIcon && (
         <MaterialIcons
-          style={{marginRight: 20}}
+          // style={{marginRight: 20}}
           onPress={() => navigation.goBack()}
           name="arrow-back"
           size={30}
@@ -30,7 +35,9 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: fonts.PPSM,
     color: appColors.textColor,
-    fontSize: fontScalling(3.5),
+    fontSize: fontScalling(3),
     fontWeight: '800',
+    textAlign: 'center',
+    paddingLeft: 50,
   },
 });

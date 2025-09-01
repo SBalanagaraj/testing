@@ -19,3 +19,11 @@ export const fontScalling = size => {
 export const print = (data, str) => {
   return console.log(JSON.stringify(data, undefined, 4), str);
 };
+
+export const formatDate = isoString => {
+  const date = new Date(isoString);
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+};

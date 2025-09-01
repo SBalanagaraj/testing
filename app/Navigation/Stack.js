@@ -1,28 +1,33 @@
 import {StyleSheet, Text, View} from 'react-native';
 import React from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
-import MerchantOverView from '../screens/MerchantOverView';
-import MerchantDetails from '../screens/MerchantDetails';
-import locationScreen from '../screens/locationScreen';
-import CouponsListSceen from '../screens/CouponsListSceen';
-import AddReviewScreen from '../screens/AddReviews';
-import ReviewListScreen from '../screens/ReviewListScreen';
+import AddressList from '../screens/SavedAddress';
+import AddressUpload from '../screens/AddressUpload';
+import WebViewScreen from '../screens/WebViewScreen';
+import ViewGoogleMeet from '../screens/ViewGoogleMeet';
 
 const Stack = createStackNavigator();
 
-export default function HomeStack() {
+export const AddressStack = () => {
   return (
     <Stack.Navigator
-      initialRouteName="merchantOverView"
+      initialRouteName="addAddress"
       screenOptions={{headerShown: false}}>
-      <Stack.Screen name="merchantOverView" component={MerchantOverView} />
-      <Stack.Screen name="MerchantDetails" component={MerchantDetails} />
-      <Stack.Screen name="location" component={locationScreen} />
-      <Stack.Screen name="couponList" component={CouponsListSceen} />
-      <Stack.Screen name="addReview" component={AddReviewScreen} />
-      <Stack.Screen name="reviewList" component={ReviewListScreen} />
+      <Stack.Screen name="addAddress" component={AddressUpload} />
+      <Stack.Screen name="addressList" component={AddressList} />
     </Stack.Navigator>
   );
-}
+};
+
+export const WebViewStack = () => {
+  return (
+    <Stack.Navigator
+      initialRouteName="viewGoogleMeet"
+      screenOptions={{headerShown: false}}>
+      <Stack.Screen name="viewGoogleMeet" component={ViewGoogleMeet} />
+      <Stack.Screen name="webview" component={WebViewScreen} />
+    </Stack.Navigator>
+  );
+};
 
 const styles = StyleSheet.create({});

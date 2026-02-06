@@ -44,6 +44,7 @@
     "react-native-google-places-autocomplete": "^2.5.7",
     "react-native-image-crop-picker": "^0.51.0",
     "react-native-modal": "^14.0.0-rc.1",
+    "react-native-qrcode-svg": "^6.3.21",
     "react-native-reanimated": "^4.0.2",
     "react-native-reanimated-carousel": "^4.0.3",
     "react-native-responsive-dimensions": "^3.1.1",

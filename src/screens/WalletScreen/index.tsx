@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,22 +10,28 @@ import {
 } from 'react-native';
 import Modal from 'react-native-modal';
 // Firebase imports will be enabled once backend is wired
-// import auth from '@react-native-firebase/auth';
-// import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 // QR code library will be enabled once we finalize the dependency
-// import QRCode from 'react-native-qrcode-svg';
+import QRCode from 'react-native-qrcode-svg';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {appColors} from '../../Utiles/appColors';
-import {styles} from './style';
+import { appColors } from '../../Utiles/appColors';
+import { styles } from './style';
+import LinearGradient from 'react-native-linear-gradient';
 
 const METHODS = ['Money cash', 'Debit card', 'Bank account', 'Credit card'];
 
-// Demo user used only for UI preview mode.
-// Replace this with: const user = auth().currentUser; when enabling Firebase Auth.
-const DEMO_USER = {uid: 'DEMO_USER_UID'};
-
 const WalletScreen = () => {
-  const user = DEMO_USER;
+  const user = auth().currentUser;
+
+  // Safeguard if user is not logged in (though App.js handles this)
+  if (!user) {
+    return (
+      <View style={styles.centered}>
+        <Text>Please sign in to view wallet.</Text>
+      </View>
+    );
+  }
 
   const [balance, setBalance] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(true);
@@ -42,86 +48,62 @@ const WalletScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const fetchBalance = useCallback(async () => {
+  // Real-time Balance Listener
+  useEffect(() => {
     setBalanceLoading(true);
-    try {
-      // Firebase Firestore logic (commented until backend is ready)
-      // const userRef = firestore().collection('users').doc(user.uid);
-      // const doc = await userRef.get();
-      // const data = doc.data();
-      // setBalance(data?.balance ?? 0);
+    const userRef = firestore().collection('users').doc(user.uid);
+    const unsubscribe = userRef.onSnapshot(
+      doc => {
+        const data = doc.data();
+        setBalance(data?.balance ?? 0);
+        setBalanceLoading(false);
+      },
+      error => {
+        console.log('Error fetching balance', error);
+        setBalanceLoading(false);
+      },
+    );
 
-      // Demo value for pure UI mode
-      setBalance(32000);
-    } catch (e) {
-      console.log('Error fetching balance (demo)', e);
-    } finally {
-      setBalanceLoading(false);
-    }
-  }, []);
-
-  const fetchTransactions = useCallback(async () => {
-    setTransactionsLoading(true);
-    try {
-      // Firebase Firestore logic (commented until backend is ready)
-      // const snapshot = await firestore()
-      //   .collection('transactions')
-      //   .where('userId', '==', user.uid)
-      //   .orderBy('createdAt', 'desc')
-      //   .limit(20)
-      //   .get();
-      // const list = snapshot.docs.map(doc => ({
-      //   id: doc.id,
-      //   ...doc.data(),
-      // }));
-      // setTransactions(list);
-
-      // Demo transactions for UI preview only
-      setTransactions([
-        {
-          id: '1',
-          userId: user.uid,
-          type: 'income',
-          method: 'Money cash',
-          description: 'Money in your wallet',
-          amount: 35,
-        },
-        {
-          id: '2',
-          userId: user.uid,
-          type: 'income',
-          method: 'Debit card',
-          description: '**** 3665',
-          amount: 25,
-        },
-        {
-          id: '3',
-          userId: user.uid,
-          type: 'income',
-          method: 'Bank account',
-          description: '**** 2254',
-          amount: 55,
-        },
-        {
-          id: '4',
-          userId: user.uid,
-          type: 'income',
-          method: 'Credit card',
-          description: '**** 3088',
-          amount: 15,
-        },
-      ]);
-    } catch (e) {
-      console.log('Error fetching transactions (demo)', e);
-    } finally {
-      setTransactionsLoading(false);
-    }
+    return () => unsubscribe();
   }, [user.uid]);
 
+  // Real-time Transactions Listener
   useEffect(() => {
-    fetchBalance();
-    fetchTransactions();
-  }, [fetchBalance, fetchTransactions]);
+    setTransactionsLoading(true);
+    const unsubscribe = firestore()
+      .collection('transactions')
+      .where('userId', '==', user.uid)
+      // Sorting client-side to avoid needing a Composite Index (userId + createdAt) immediately
+      .onSnapshot(
+        snapshot => {
+          const list = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          // Sort by createdAt descending
+          list.sort((a, b) => {
+            // Handle Firestore Timestamp or fallback
+            const timeA = a.createdAt?.toMillis
+              ? a.createdAt.toMillis()
+              : Date.now();
+            const timeB = b.createdAt?.toMillis
+              ? b.createdAt.toMillis()
+              : Date.now();
+            return timeB - timeA;
+          });
+
+          setTransactions(list);
+          setTransactionsLoading(false);
+        },
+        error => {
+          console.log('Error fetching transactions', error);
+          setTransactionsLoading(false);
+        },
+      );
+
+    return () => unsubscribe();
+  }, [user.uid]);
 
   const handleSubmit = async () => {
     setFormError('');
@@ -143,65 +125,58 @@ const WalletScreen = () => {
     }
 
     setSubmitting(true);
+    setSubmitting(true);
     try {
-      // Firebase transaction logic (commented until backend is ready)
-      // const newBalance = await firestore().runTransaction(async tx => {
-      //   const userRef = firestore().collection('users').doc(user.uid);
-      //   const userSnap = await tx.get(userRef);
-      //   const currentBalance = userSnap.exists
-      //     ? userSnap.data().balance || 0
-      //     : 0;
-      //   const updatedBalance = currentBalance + parsedAmount;
-      //
-      //   const transactionRef = firestore().collection('transactions').doc();
-      //
-      //   tx.set(transactionRef, {
-      //     userId: user.uid,
-      //     type: 'income',
-      //     method,
-      //     description: description.trim(),
-      //     amount: parsedAmount,
-      //     createdAt: firestore.FieldValue.serverTimestamp(),
-      //   });
-      //
-      //   tx.set(
-      //     userRef,
-      //     {
-      //       balance: updatedBalance,
-      //     },
-      //     {merge: true},
-      //   );
-      //
-      //   return updatedBalance;
-      // });
+      // Firebase transaction logic
+      const newBalance = await firestore().runTransaction(async tx => {
+        const userRef = firestore().collection('users').doc(user.uid);
+        // console.log('userRef', userRef);
+        const userSnap = await tx.get(userRef);
+        const currentBalance = userSnap.exists
+          ? userSnap.data().balance || 0
+          : 0;
+        const updatedBalance = currentBalance + parsedAmount;
 
-      // Demo-only: update local state so UI reacts
-      setBalance(prev => prev + parsedAmount);
-      setTransactions(prev => [
-        {
-          id: Date.now().toString(),
+        const transactionRef = firestore().collection('transactions').doc();
+        console.log('transactionRef', transactionRef);
+        tx.set(transactionRef, {
           userId: user.uid,
           type: 'income',
           method,
           description: description.trim(),
           amount: parsedAmount,
-        },
-        ...prev,
-      ]);
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        });
+
+        tx.set(
+          userRef,
+          {
+            balance: updatedBalance,
+          },
+          { merge: true },
+        );
+
+        return updatedBalance;
+      });
+
+      // Update local state by re-fetching (or manual update if preferred, but fetch is safer)
+      // Real-time listeners will automatically update the UI
+      // setBalance(newBalance);
+      // await fetchTransactions();
 
       setDescription('');
       setAmount('');
       setMethod(METHODS[0]);
       setAddWalletVisible(false);
     } catch (e) {
-      console.log('Error submitting wallet transaction (demo)', e);
+      console.log('Error submitting wallet transaction', e);
       setFormError('Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const renderTransactionItem = ({item}: {item: any}) => {
+  const renderTransactionItem = ({ item }: { item: any }) => {
     const iconName = (() => {
       switch (item.method) {
         case 'Money cash':
@@ -262,7 +237,11 @@ const WalletScreen = () => {
       </View>
 
       {/* Balance Card */}
-      <View style={styles.balanceCard}>
+      <LinearGradient
+        colors={['#A855F7', '#3B82F6']} // Purple to Blue gradient
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>My Balance</Text>
         <Text style={styles.balanceDate}>Today</Text>
         {balanceLoading ? (
@@ -271,7 +250,9 @@ const WalletScreen = () => {
           <Text style={styles.balanceValue}>{parsedCurrency(balance)}</Text>
         )}
         <Text style={styles.balanceFooter}>TOTAL BALANCE</Text>
-      </View>
+      </LinearGradient>
+
+      <Text style={styles.sectionTitle}>My transactions</Text>
 
       {/* Transactions List */}
       <View style={styles.listContainer}>
@@ -410,7 +391,7 @@ const WalletScreen = () => {
           </View>
         </View>
       </RNModal>
-    </View>
+    </View >
   );
 };
 

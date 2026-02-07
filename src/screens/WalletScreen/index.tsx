@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,11 +12,10 @@ import Modal from 'react-native-modal';
 // Firebase imports will be enabled once backend is wired
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-// QR code library will be enabled once we finalize the dependency
 import QRCode from 'react-native-qrcode-svg';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { appColors } from '../../Utiles/appColors';
-import { styles } from './style';
+import {appColors} from '../../Utiles/appColors';
+import {styles} from './style';
 import LinearGradient from 'react-native-linear-gradient';
 
 const METHODS = ['Money cash', 'Debit card', 'Bank account', 'Credit card'];
@@ -125,20 +124,18 @@ const WalletScreen = () => {
     }
 
     setSubmitting(true);
-    setSubmitting(true);
     try {
       // Firebase transaction logic
-      const newBalance = await firestore().runTransaction(async tx => {
+      await firestore().runTransaction(async tx => {
         const userRef = firestore().collection('users').doc(user.uid);
-        // console.log('userRef', userRef);
         const userSnap = await tx.get(userRef);
         const currentBalance = userSnap.exists
-          ? userSnap.data().balance || 0
-          : 0;
+            ? userSnap.data()?.balance ?? 0
+            : 0;
         const updatedBalance = currentBalance + parsedAmount;
 
         const transactionRef = firestore().collection('transactions').doc();
-        console.log('transactionRef', transactionRef);
+
         tx.set(transactionRef, {
           userId: user.uid,
           type: 'income',
@@ -153,7 +150,7 @@ const WalletScreen = () => {
           {
             balance: updatedBalance,
           },
-          { merge: true },
+          {merge: true},
         );
 
         return updatedBalance;
@@ -176,7 +173,7 @@ const WalletScreen = () => {
     }
   };
 
-  const renderTransactionItem = ({ item }: { item: any }) => {
+  const renderTransactionItem = ({item}: {item: any}) => {
     const iconName = (() => {
       switch (item.method) {
         case 'Money cash':
@@ -217,7 +214,9 @@ const WalletScreen = () => {
   };
 
   const parsedCurrency = (value: number | string) =>
-    `$${Number(value || 0).toFixed(2).toString()}`;
+    `$${Number(value || 0)
+      .toFixed(2)
+      .toString()}`;
 
   return (
     <View style={styles.container}>
@@ -239,8 +238,8 @@ const WalletScreen = () => {
       {/* Balance Card */}
       <LinearGradient
         colors={['#A855F7', '#3B82F6']} // Purple to Blue gradient
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
         style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>My Balance</Text>
         <Text style={styles.balanceDate}>Today</Text>
@@ -264,6 +263,7 @@ const WalletScreen = () => {
             keyExtractor={item => item.id}
             renderItem={renderTransactionItem}
             contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>
@@ -291,7 +291,9 @@ const WalletScreen = () => {
             onPress={() => setMethodDropdownOpen(prev => !prev)}>
             <Text style={styles.dropdownText}>{method}</Text>
             <Icon
-              name={methodDropdownOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+              name={
+                methodDropdownOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'
+              }
               size={20}
               color="#555"
             />
@@ -373,17 +375,17 @@ const WalletScreen = () => {
           <View style={styles.qrContent}>
             <Text style={styles.modalTitle}>Your QR Code</Text>
             <View style={styles.qrPreviewWrapper}>
-              {/* Placeholder UI while QR library is disabled */}
-              <View style={styles.qrPreviewBox}>
-                <Text style={styles.qrPreviewText}>QR Code preview for:</Text>
-                <Text style={styles.qrUserId}>{user.uid}</Text>
+              <View style={[styles.qrPreviewBox, {backgroundColor: 'white', padding: 20}]}>
+                <QRCode value={user.uid} size={200} />
+                <Text style={[styles.qrUserId, {marginTop: 20}]}>{user.uid}</Text>
               </View>
             </View>
             <TouchableOpacity
               style={[
-                styles.modalButton,
+                // styles.modalButton,
                 styles.submitButton,
-                styles.qrCloseButton,
+                {paddingHorizontal: 10, borderRadius: 10,paddingVertical: 5},
+                // styles.qrCloseButton,
               ]}
               onPress={() => setQrVisible(false)}>
               <Text style={styles.modalButtonText}>Close</Text>
@@ -391,9 +393,8 @@ const WalletScreen = () => {
           </View>
         </View>
       </RNModal>
-    </View >
+    </View>
   );
 };
 
 export default WalletScreen;
-

@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import Modal from 'react-native-modal';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import {
   Camera,
   useCameraDevice,
@@ -18,6 +20,7 @@ import {
   useCameraPermission,
 } from 'react-native-vision-camera';
 import { styles } from './style';
+import { appColors } from '../../Utiles/appColors';
 
 type CardType = 'Debit' | 'Credit';
 
@@ -40,36 +43,12 @@ type Transaction = {
   counterpartUserId: string;
 };
 
-// Placeholder for the current user. Replace with real auth UID later.
-const CURRENT_USER_ID = 'USER_123';
-
-const INITIAL_CARDS: Card[] = [
-  {
-    id: '1',
-    brand: 'VISA',
-    type: 'Credit',
-    holder: 'Rohit Sharma',
-    number: '3344 9988 4567 2323',
-    last4: '2323',
-    expiry: '22 / 24',
-    isPrimary: true,
-  },
-  {
-    id: '2',
-    brand: 'Mastercard',
-    type: 'Debit',
-    holder: 'Rohit Sharma',
-    number: '3344 3467 3421 2323',
-    last4: '2323',
-    expiry: '11 / 25',
-  },
-];
-
 const CARD_TYPES: CardType[] = ['Debit', 'Credit'];
 
 const CardScreen = () => {
-  const [cards, setCards] = useState<Card[]>(INITIAL_CARDS);
-  const [selectedCardId, setSelectedCardId] = useState<string>('1');
+  const [cards, setCards] = useState<Card[]>([]);
+  const [loadingCards, setLoadingCards] = useState(true);
+  const [selectedCardId, setSelectedCardId] = useState<string>('');
 
   const [addCardVisible, setAddCardVisible] = useState(false);
   const [cardHolderName, setCardHolderName] = useState('');
@@ -78,6 +57,7 @@ const CardScreen = () => {
   const [cardType, setCardType] = useState<CardType>('Credit');
   const [cardTypeDropdownOpen, setCardTypeDropdownOpen] = useState(false);
   const [formError, setFormError] = useState('');
+  const [submittingCard, setSubmittingCard] = useState(false);
 
   const [amount, setAmount] = useState('');
   const [scanVisible, setScanVisible] = useState(false);
@@ -85,12 +65,43 @@ const CardScreen = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [scannedUserId, setScannedUserId] = useState<string | null>(null);
-
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transferring, setTransferring] = useState(false);
 
   // Camera hooks
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('back');
+
+  const user = auth().currentUser;
+
+  // Fetch Cards from Firestore
+  useEffect(() => {
+    if (!user) return;
+    setLoadingCards(true);
+    const unsubscribe = firestore()
+      .collection('users')
+      .doc(user.uid)
+      .collection('cards')
+      .onSnapshot(
+        (snapshot: any) => {
+          const fetchedCards: Card[] = snapshot.docs.map((doc: any) => ({
+            id: doc.id,
+            ...doc.data(),
+          } as Card));
+          
+          setCards(fetchedCards);
+          if (fetchedCards.length > 0 && !selectedCardId) {
+             setSelectedCardId(fetchedCards[0].id);
+          }
+          setLoadingCards(false);
+        },
+        (error: any) => {
+          console.error('Error fetching cards', error);
+          setLoadingCards(false);
+        }
+      );
+
+    return () => unsubscribe();
+  }, [user]);
 
   useEffect(() => {
     if (scanVisible && !hasPermission) {
@@ -107,15 +118,6 @@ const CardScreen = () => {
     },
   });
 
-  useEffect(() => {
-    // Example side effect: log whenever a transfer is recorded.
-    if (transactions.length > 0) {
-      // Placeholder for sending these to backend in the future.
-      // e.g. send to Firestore or your API.
-      // console.log('Transactions updated', transactions);
-    }
-  }, [transactions]);
-
   const maskedNumber = (num: string) => {
     const cleaned = num.replace(/\s+/g, '');
     if (cleaned.length < 4) {
@@ -125,7 +127,7 @@ const CardScreen = () => {
     return `•••• •••• •••• ${last4}`;
   };
 
-  const handleAddCardSubmit = () => {
+  const handleAddCardSubmit = async () => {
     setFormError('');
     setSuccessMessage('');
 
@@ -134,24 +136,44 @@ const CardScreen = () => {
       return;
     }
 
-    const newCard: Card = {
-      id: Date.now().toString(),
-      brand: cardType === 'Credit' ? 'VISA' : 'Mastercard',
-      type: cardType,
-      holder: cardHolderName.trim(),
-      number: cardNumber.trim(),
-      last4: cardNumber.trim().slice(-4),
-      expiry: cardExpiry.trim(),
-    };
+    if (!user) {
+        setFormError('User not authenticated');
+        return;
+    }
 
-    setCards(prev => [...prev, newCard]);
-    setSelectedCardId(newCard.id);
+    setSubmittingCard(true);
 
-    setCardHolderName('');
-    setCardNumber('');
-    setCardExpiry('');
-    setCardType('Credit');
-    setAddCardVisible(false);
+    try {
+        const newCardData = {
+            brand: cardType === 'Credit' ? 'VISA' : 'Mastercard',
+            type: cardType,
+            holder: cardHolderName.trim(),
+            number: cardNumber.trim(),
+            last4: cardNumber.trim().slice(-4),
+            expiry: cardExpiry.trim(),
+            createdAt: firestore.FieldValue.serverTimestamp(),
+        };
+
+        const docRef = await firestore()
+            .collection('users')
+            .doc(user?.uid)
+            .collection('cards')
+            .add(newCardData);
+
+        setSelectedCardId(docRef.id);
+        
+        setCardHolderName('');
+        setCardNumber('');
+        setCardExpiry('');
+        setCardType('Credit');
+        setAddCardVisible(false);
+        setSuccessMessage('Card added successfully');
+    } catch (error) {
+        console.error('Error adding card:', error);
+        setFormError('Failed to add card. Please try again.');
+    } finally {
+        setSubmittingCard(false);
+    }
   };
 
   const handleScanPress = async () => {
@@ -168,12 +190,10 @@ const CardScreen = () => {
   };
 
   const handleQrScanned = (value: string | null) => {
-    // If the modal is already closed or we are already processing a user, ignore
-    // But `scanVisible` check inside the callback might follow stale state closure in some cases depending on implementation.
-    // However, we call setScanVisible(false) immediately.
-
-    // We need to guard against rapid multiple calls
     if (!value) return;
+
+    // Prevent scanning if already processing
+    // if (scanVisible === false) return; // Simple debounce check
 
     setScanVisible(false);
     setErrorMessage('');
@@ -184,20 +204,26 @@ const CardScreen = () => {
       return;
     }
 
-    if (value === CURRENT_USER_ID) {
+    // Validate that the ID doesn't contain path separators
+    if (value.includes('/') || value.includes('\\')) {
+        setErrorMessage('Invalid User ID format');
+        return;
+    }
+
+    if (user && value === user.uid) {
       setErrorMessage('You cannot transfer to yourself');
       return;
     }
 
     setScannedUserId(value);
-    // Add small delay to allow modal to close smoothly before opening the next one
+    
     setTimeout(() => {
       setConfirmVisible(true);
     }, 500);
   };
 
-  const handleConfirmTransfer = () => {
-    if (!scannedUserId) {
+  const handleConfirmTransfer = async () => {
+    if (!scannedUserId || !user) {
       setConfirmVisible(false);
       return;
     }
@@ -209,25 +235,81 @@ const CardScreen = () => {
       return;
     }
 
-    const transferId = Date.now().toString();
-    const expense: Transaction = {
-      id: `${transferId}-expense`,
-      userId: CURRENT_USER_ID,
-      direction: 'expense',
-      amount: parsedAmount,
-      counterpartUserId: scannedUserId,
-    };
-    const income: Transaction = {
-      id: `${transferId}-income`,
-      userId: scannedUserId,
-      direction: 'income',
-      amount: parsedAmount,
-      counterpartUserId: CURRENT_USER_ID,
-    };
+    setTransferring(true);
 
-    setTransactions(prev => [expense, income, ...prev]);
-    setConfirmVisible(false);
-    setSuccessMessage('Transfer successful');
+    try {
+        await firestore().runTransaction(async (transaction: any) => {
+            // 1. Get sender (current user) doc
+            const senderRef = firestore().collection('users').doc(user.uid);
+            console.log(`Transferring ${parsedAmount} from ${user.uid} to ${scannedUserId}`);
+            
+            const senderSnapshot = await transaction.get(senderRef);
+
+            if (!senderSnapshot.exists) {
+                throw new Error("Sender does not exist!");
+            }
+
+            const senderBalance = senderSnapshot.data()?.balance ?? 0;
+
+            if (senderBalance < parsedAmount) {
+                throw new Error("Insufficient balance!");
+            }
+
+            // 2. Get receiver doc
+            const receiverRef = firestore().collection('users').doc(scannedUserId);
+            const receiverSnapshot = await transaction.get(receiverRef);
+
+            if (!receiverSnapshot.exists) {
+                throw new Error("Receiver does not exist!"); // Or invalid QR code
+            }
+
+            const receiverBalance = receiverSnapshot.data()?.balance ?? 0;
+
+            // 3. Perform updates
+            const newSenderBalance = senderBalance - parsedAmount;
+            const newReceiverBalance = receiverBalance + parsedAmount;
+
+            transaction.update(senderRef, { balance: newSenderBalance });
+            transaction.update(receiverRef, { balance: newReceiverBalance });
+
+            // 4. Create Transaction Records
+            // For simplicity creating one record for each user so they can query their own history easily
+            // Or a single transaction document if we query by 'participants' array.
+            // Following previous pattern:
+            
+            const senderTxRef = firestore().collection('transactions').doc();
+            transaction.set(senderTxRef, {
+                userId: user.uid,
+                type: 'expense',
+                method: 'Transfer',
+                description: `Transfer to ${scannedUserId}`, // ideally User Name
+                amount: parsedAmount,
+                createdAt: firestore.FieldValue.serverTimestamp(),
+                counterpartUserId: scannedUserId
+            });
+
+            const receiverTxRef = firestore().collection('transactions').doc();
+            transaction.set(receiverTxRef, {
+                userId: scannedUserId,
+                type: 'income',
+                method: 'Transfer',
+                description: `Received from ${user.uid}`, // ideally User Name
+                amount: parsedAmount,
+                createdAt: firestore.FieldValue.serverTimestamp(),
+                counterpartUserId: user.uid
+            });
+        });
+
+        setSuccessMessage('Transfer successful!');
+        setAmount('');
+        setScannedUserId(null);
+    } catch (e: any) {
+        console.error("Transfer failed", e);
+        setErrorMessage(e.message || "Transfer failed");
+    } finally {
+        setTransferring(false);
+        setConfirmVisible(false);
+    }
   };
 
   const selectedCard = useMemo(
@@ -365,10 +447,10 @@ const CardScreen = () => {
           <Text style={styles.scanLabel}>Scan Card</Text>
         </TouchableOpacity>
 
-        <Text style={styles.amountLabel}>Enter amount</Text>
         <TextInput
           style={styles.amountInput}
-          placeholder="₹0.00"
+          placeholder="Enter amount"
+          placeholderTextColor={`#007bff`}
           keyboardType="numeric"
           value={amount}
           onChangeText={setAmount}
@@ -516,7 +598,7 @@ const CardScreen = () => {
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity
                 style={{ backgroundColor: '#fff', padding: 8, borderRadius: 5 }}
-                onPress={() => handleQrScanned(CURRENT_USER_ID)}>
+                onPress={() => user?.uid && handleQrScanned(user.uid)}>
                 <Text style={{ color: '#000', fontSize: 10 }}>Sim Self</Text>
               </TouchableOpacity>
               <TouchableOpacity

@@ -42,6 +42,10 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     marginBottom: 16,
     elevation: 2,
+    shadowColor: '#fff',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   cardItem: {
     backgroundColor: '#ffffff',
@@ -53,6 +57,10 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     elevation: 1,
+    shadowColor: '#fff',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   cardLeft: {
     flexDirection: 'row',
@@ -98,6 +106,17 @@ export const styles = StyleSheet.create({
   },
   cardSelectedIcon: {
     marginTop: 6,
+  },
+  primaryTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  primaryTopNumber: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
   },
   primaryCardWrapper: {
     marginBottom: 8,
@@ -187,7 +206,7 @@ export const styles = StyleSheet.create({
   },
   amountInput: {
     borderBottomWidth: 1,
-    borderBottomColor: '#cbd5f5',
+    borderBottomColor: '#007bff',
     paddingVertical: 6,
     fontSize: 16,
     color: '#111827',

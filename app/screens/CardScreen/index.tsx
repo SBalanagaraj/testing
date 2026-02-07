@@ -1,15 +1,23 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal as RNModal,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
 } from 'react-native';
 import Modal from 'react-native-modal';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {styles} from './style';
+import {
+  Camera,
+  useCameraDevice,
+  useCodeScanner,
+  useCameraPermission,
+} from 'react-native-vision-camera';
+import { styles } from './style';
 
 type CardType = 'Debit' | 'Credit';
 
@@ -80,6 +88,25 @@ const CardScreen = () => {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
+  // Camera hooks
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice('back');
+
+  useEffect(() => {
+    if (scanVisible && !hasPermission) {
+      requestPermission();
+    }
+  }, [scanVisible, hasPermission, requestPermission]);
+
+  const codeScanner = useCodeScanner({
+    codeTypes: ['qr', 'ean-13'],
+    onCodeScanned: codes => {
+      if (codes.length > 0 && codes[0].value) {
+        handleQrScanned(codes[0].value);
+      }
+    },
+  });
+
   useEffect(() => {
     // Example side effect: log whenever a transfer is recorded.
     if (transactions.length > 0) {
@@ -127,21 +154,32 @@ const CardScreen = () => {
     setAddCardVisible(false);
   };
 
-  const handleScanPress = () => {
+  const handleScanPress = async () => {
     setErrorMessage('');
     setSuccessMessage('');
+    if (!hasPermission) {
+      const permission = await requestPermission();
+      if (!permission) {
+        Alert.alert('Permission needed', 'Camera permission is required to scan QR codes');
+        return;
+      }
+    }
     setScanVisible(true);
   };
 
-  // This function simulates what would happen when a QR is scanned.
-  // When you integrate a real QR library (e.g. react-native-camera or react-native-qrcode-scanner),
-  // call this function with the scanned UID.
   const handleQrScanned = (value: string | null) => {
+    // If the modal is already closed or we are already processing a user, ignore
+    // But `scanVisible` check inside the callback might follow stale state closure in some cases depending on implementation.
+    // However, we call setScanVisible(false) immediately.
+
+    // We need to guard against rapid multiple calls
+    if (!value) return;
+
     setScanVisible(false);
     setErrorMessage('');
     setSuccessMessage('');
 
-    if (!value || !value.trim()) {
+    if (!value.trim()) {
       setErrorMessage('Invalid QR code');
       return;
     }
@@ -152,7 +190,10 @@ const CardScreen = () => {
     }
 
     setScannedUserId(value);
-    setConfirmVisible(true);
+    // Add small delay to allow modal to close smoothly before opening the next one
+    setTimeout(() => {
+      setConfirmVisible(true);
+    }, 500);
   };
 
   const handleConfirmTransfer = () => {
@@ -432,39 +473,58 @@ const CardScreen = () => {
         </View>
       </Modal>
 
-      {/* QR Scanner UI placeholder.
-          When you integrate a library like `react-native-camera`,
-          render the camera preview inside this overlay and call `handleQrScanned`
-          from the onBarCodeRead/onRead callback. */}
+      {/* Camera Modal */}
       <RNModal
         visible={scanVisible}
         animationType="fade"
-        transparent
         onRequestClose={() => setScanVisible(false)}>
-        <View style={styles.cameraOverlay}>
-          <View style={styles.cameraFrame}>
-            <Text style={styles.cameraHint}>
-              Camera preview placeholder.{'\n'}
-              Integrate a QR scanner library here and call handleQrScanned(uid)
-              when a QR code is detected.
-            </Text>
-          </View>
-          <View style={styles.cameraActions}>
-            <TouchableOpacity
-              style={styles.cameraSimButton}
-              onPress={() => handleQrScanned(CURRENT_USER_ID)}>
-              <Text style={styles.cameraSimText}>Simulate Self Scan</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cameraSimButton}
-              onPress={() => handleQrScanned('OTHER_USER_456')}>
-              <Text style={styles.cameraSimText}>Simulate Valid Scan</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cameraSimButton}
-              onPress={() => handleQrScanned(null)}>
-              <Text style={styles.cameraSimText}>Simulate Invalid QR</Text>
-            </TouchableOpacity>
+        <View style={StyleSheet.absoluteFill}>
+          {device != null && hasPermission ? (
+            <Camera
+              style={StyleSheet.absoluteFill}
+              device={device}
+              isActive={scanVisible}
+              codeScanner={codeScanner}
+            />
+          ) : (
+            <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: 'white' }}>
+                {hasPermission === false ? "No Camera Permission" : "Loading Camera..."}
+              </Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 40,
+              right: 20,
+              padding: 10,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              borderRadius: 20
+            }}
+            onPress={() => setScanVisible(false)}
+          >
+            <Icon name="close" size={30} color="white" />
+          </TouchableOpacity>
+
+          {/* Keeping simulation buttons for testing if device not available in emulator, etc. */}
+          <View style={{ position: 'absolute', bottom: 50, left: 0, right: 0, alignItems: 'center' }}>
+            <Text style={{ color: 'white', marginBottom: 20, backgroundColor: 'rgba(0,0,0,0.5)', padding: 5 }}>Scan QR Code to Transfer</Text>
+
+            {/* Development/Fallback helpers */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={{ backgroundColor: '#fff', padding: 8, borderRadius: 5 }}
+                onPress={() => handleQrScanned(CURRENT_USER_ID)}>
+                <Text style={{ color: '#000', fontSize: 10 }}>Sim Self</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ backgroundColor: '#fff', padding: 8, borderRadius: 5 }}
+                onPress={() => handleQrScanned('OTHER_USER_456')}>
+                <Text style={{ color: '#000', fontSize: 10 }}>Sim Valid</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </RNModal>

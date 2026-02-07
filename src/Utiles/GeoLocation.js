@@ -1,9 +1,9 @@
-import {Alert, Linking, PermissionsAndroid, Platform} from 'react-native';
+import { Alert, Linking, PermissionsAndroid, Platform } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
-import {print} from '../Utiles/HelperFunction';
-import {useDispatch} from 'react-redux';
-import {setUserLocation} from '../Redux/settingSlice';
-import {useNavigation} from '@react-navigation/native';
+import { print } from './HelperFunction';
+import { useDispatch } from 'react-redux';
+import { setUserLocation } from '../Redux/settingSlice';
+import { useNavigation } from '@react-navigation/native';
 
 export const requestLocationPermission = async () => {
   if (Platform.OS === 'ios') {
@@ -50,8 +50,8 @@ export const handleLocationPermission = async () => {
       'Permission Required',
       'Location permission is required. Please enable it in the app settings.',
       [
-        {text: 'Cancel', style: 'cancel'},
-        {text: 'Open Settings', onPress: () => Linking.openSettings()},
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Open Settings', onPress: () => Linking.openSettings() },
       ],
     );
   } else {
@@ -75,7 +75,7 @@ export const getUserLocation = async (coordinates = '') => {
         Geolocation.getCurrentPosition(
           position => resolve(position),
           error => reject(error),
-          {enableHighAccuracy: true, timeout: 15000},
+          { enableHighAccuracy: true, timeout: 15000 },
         );
       });
     }

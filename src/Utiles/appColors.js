@@ -1,6 +1,6 @@
 export const appColors = {
   black: '#000',
-  pink: '#FF8FAD',
+  pink: '#3b82f6',
   borderPink: '#FFBDCF',
   searchColor: '#FFF0F4',
   background: ' #FFE6EC',

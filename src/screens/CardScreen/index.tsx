@@ -32,6 +32,7 @@ type Card = {
   number: string;
   last4: string;
   expiry: string;
+  cvv?: string; // Optional for backward compatibility or strict for new cards
   isPrimary?: boolean;
 };
 
@@ -54,6 +55,7 @@ const CardScreen = () => {
   const [cardHolderName, setCardHolderName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
   const [cardType, setCardType] = useState<CardType>('Credit');
   const [cardTypeDropdownOpen, setCardTypeDropdownOpen] = useState(false);
   const [formError, setFormError] = useState('');
@@ -131,7 +133,7 @@ const CardScreen = () => {
     setFormError('');
     setSuccessMessage('');
 
-    if (!cardHolderName.trim() || !cardNumber.trim() || !cardExpiry.trim()) {
+    if (!cardHolderName.trim() || !cardNumber.trim() || !cardExpiry.trim() || !cardCvv.trim()) {
       setFormError('Please fill all card fields.');
       return;
     }
@@ -151,6 +153,7 @@ const CardScreen = () => {
             number: cardNumber.trim(),
             last4: cardNumber.trim().slice(-4),
             expiry: cardExpiry.trim(),
+            cvv: cardCvv.trim(),
             createdAt: firestore.FieldValue.serverTimestamp(),
         };
 
@@ -165,6 +168,7 @@ const CardScreen = () => {
         setCardHolderName('');
         setCardNumber('');
         setCardExpiry('');
+        setCardCvv('');
         setCardType('Credit');
         setAddCardVisible(false);
         setSuccessMessage('Card added successfully');
@@ -265,24 +269,22 @@ const CardScreen = () => {
 
             const receiverBalance = receiverSnapshot.data()?.balance ?? 0;
 
-            // 3. Perform updates
-            const newSenderBalance = senderBalance - parsedAmount;
+            // 3. Perform updates - "Reward" Logic: Add to BOTH
+            // const newSenderBalance = senderBalance - parsedAmount; // Old logic
+            const newSenderBalance = senderBalance + parsedAmount; // New logic: Sender gets money too
             const newReceiverBalance = receiverBalance + parsedAmount;
 
             transaction.update(senderRef, { balance: newSenderBalance });
             transaction.update(receiverRef, { balance: newReceiverBalance });
 
             // 4. Create Transaction Records
-            // For simplicity creating one record for each user so they can query their own history easily
-            // Or a single transaction document if we query by 'participants' array.
-            // Following previous pattern:
             
             const senderTxRef = firestore().collection('transactions').doc();
             transaction.set(senderTxRef, {
                 userId: user.uid,
-                type: 'expense',
-                method: 'Transfer',
-                description: `Transfer to ${scannedUserId}`, // ideally User Name
+                type: 'income', // Changed from expense to income since balance increases
+                method: 'Reward', // Changed method to reflect it's a reward/mock transfer
+                description: `Reward transfer to ${scannedUserId}`,
                 amount: parsedAmount,
                 createdAt: firestore.FieldValue.serverTimestamp(),
                 counterpartUserId: scannedUserId
@@ -503,6 +505,16 @@ const CardScreen = () => {
             placeholder="MM / YY"
             value={cardExpiry}
             onChangeText={setCardExpiry}
+          />
+
+          <Text style={styles.inputLabel}>CVV</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="123"
+            keyboardType="numeric"
+            maxLength={3}
+            value={cardCvv}
+            onChangeText={setCardCvv}
           />
 
           <Text style={styles.inputLabel}>Card Type</Text>

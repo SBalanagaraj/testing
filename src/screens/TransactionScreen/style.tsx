@@ -35,6 +35,7 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
+    
   },
   balanceLabel: {
     color: 'rgba(255,255,255,0.8)',
@@ -42,6 +43,8 @@ export const styles = StyleSheet.create({
     marginBottom: 5,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    shadowColor: '#fff',
+    
   },
   balanceValue: {
     color: '#fff',
@@ -66,8 +69,8 @@ export const styles = StyleSheet.create({
     borderRadius: 10,
   },
   activeTab: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
+    backgroundColor: appColors?.pink,
+    shadowColor: '#fff',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -79,7 +82,7 @@ export const styles = StyleSheet.create({
     color: '#9E9E9E',
   },
   activeTabText: {
-    color: '#333',
+    color: '#fff',
   },
 
   // Timeline

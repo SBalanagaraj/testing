@@ -371,8 +371,7 @@ const WalletScreen = () => {
             <Text style={styles.modalTitle}>Your QR Code</Text>
             <View style={styles.qrPreviewWrapper}>
               <View style={[styles.qrPreviewBox, {backgroundColor: 'white', padding: 20}]}>
-                {/* <QRCode value={'https://chatgpt.com/c/6986d756-f588-8324-9641-924f50195777'} size={200} />; */}
-
+                <QRCode value={user.uid} size={200} />
                 <Text style={[styles.qrUserId, {marginTop: 20}]}>{user.uid}</Text>
               </View>
             </View>

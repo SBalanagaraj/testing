@@ -156,11 +156,6 @@ const WalletScreen = () => {
         return updatedBalance;
       });
 
-      // Update local state by re-fetching (or manual update if preferred, but fetch is safer)
-      // Real-time listeners will automatically update the UI
-      // setBalance(newBalance);
-      // await fetchTransactions();
-
       setDescription('');
       setAmount('');
       setMethod(METHODS[0]);
@@ -376,7 +371,8 @@ const WalletScreen = () => {
             <Text style={styles.modalTitle}>Your QR Code</Text>
             <View style={styles.qrPreviewWrapper}>
               <View style={[styles.qrPreviewBox, {backgroundColor: 'white', padding: 20}]}>
-                <QRCode value={user.uid} size={200} />
+                {/* <QRCode value={'https://chatgpt.com/c/6986d756-f588-8324-9641-924f50195777'} size={200} />; */}
+
                 <Text style={[styles.qrUserId, {marginTop: 20}]}>{user.uid}</Text>
               </View>
             </View>

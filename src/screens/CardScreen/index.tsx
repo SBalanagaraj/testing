@@ -232,9 +232,10 @@ const CardScreen = () => {
       return;
     }
 
+    // 1. Validate Amount
     const parsedAmount = Number(amount.replace(/,/g, '.'));
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-      setErrorMessage('Invalid amount.');
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setErrorMessage('Invalid amount. Please enter a positive number.');
       setConfirmVisible(false);
       return;
     }
@@ -242,77 +243,77 @@ const CardScreen = () => {
     setTransferring(true);
 
     try {
-        await firestore().runTransaction(async (transaction: any) => {
-            // 1. Get sender (current user) doc
-            const senderRef = firestore().collection('users').doc(user.uid);
-            console.log(`Transferring ${parsedAmount} from ${user.uid} to ${scannedUserId}`);
-            
-            const senderSnapshot = await transaction.get(senderRef);
+      await firestore().runTransaction(async (transaction: any) => {
+        const senderRef = firestore().collection('users').doc(user.uid);
+        const receiverRef = firestore().collection('users').doc(scannedUserId);
 
-            if (!senderSnapshot.exists) {
-                throw new Error("Sender does not exist!");
-            }
+        // 2. Read both documents
+        const senderSnapshot = await transaction.get(senderRef);
+        const receiverSnapshot = await transaction.get(receiverRef);
 
-            const senderBalance = senderSnapshot.data()?.balance ?? 0;
+        if (!senderSnapshot.exists) {
+          throw new Error("Sender account not found.");
+        }
+        if (!receiverSnapshot.exists) {
+          throw new Error("Receiver account not found.");
+        }
 
-            if (senderBalance < parsedAmount) {
-                throw new Error("Insufficient balance!");
-            }
+        const senderBalance = senderSnapshot.data()?.balance ?? 0;
+        const receiverBalance = receiverSnapshot.data()?.balance ?? 0;
 
-            // 2. Get receiver doc
-            const receiverRef = firestore().collection('users').doc(scannedUserId);
-            const receiverSnapshot = await transaction.get(receiverRef);
+        // 3. Check Insufficient Funds
+        if (senderBalance < parsedAmount) {
+             throw new Error(`Insufficient balance! Available: ${senderBalance}`);
+        }
 
-            if (!receiverSnapshot.exists) {
-                throw new Error("Receiver does not exist!"); // Or invalid QR code
-            }
+        // 4. Calculate New Balances (Sender -> Receiver)
+        const newSenderBalance = senderBalance - parsedAmount;
+        const newReceiverBalance = receiverBalance + parsedAmount;
 
-            const receiverBalance = receiverSnapshot.data()?.balance ?? 0;
+        // 5. Update Balances
+        transaction.update(senderRef, { balance: newSenderBalance });
+        transaction.update(receiverRef, { balance: newReceiverBalance });
 
-            // 3. Perform updates - "Reward" Logic: Add to BOTH
-            // const newSenderBalance = senderBalance - parsedAmount; // Old logic
-            const newSenderBalance = senderBalance + parsedAmount; // New logic: Sender gets money too
-            const newReceiverBalance = receiverBalance + parsedAmount;
+        // 6. Create Transaction Records
+        const now = firestore.FieldValue.serverTimestamp();
 
-            transaction.update(senderRef, { balance: newSenderBalance });
-            transaction.update(receiverRef, { balance: newReceiverBalance });
-
-            // 4. Create Transaction Records
-            
-            const senderTxRef = firestore().collection('transactions').doc();
-            transaction.set(senderTxRef, {
-                userId: user.uid,
-                type: 'income', // Changed from expense to income since balance increases
-                method: 'Reward', // Changed method to reflect it's a reward/mock transfer
-                description: `Reward transfer to ${scannedUserId}`,
-                amount: parsedAmount,
-                createdAt: firestore.FieldValue.serverTimestamp(),
-                counterpartUserId: scannedUserId
-            });
-
-            const receiverTxRef = firestore().collection('transactions').doc();
-            transaction.set(receiverTxRef, {
-                userId: scannedUserId,
-                type: 'income',
-                method: 'Transfer',
-                description: `Received from ${user.uid}`, // ideally User Name
-                amount: parsedAmount,
-                createdAt: firestore.FieldValue.serverTimestamp(),
-                counterpartUserId: user.uid
-            });
+        // Sender Record (Expense)
+        const senderTxRef = firestore().collection('transactions').doc();
+        transaction.set(senderTxRef, {
+          userId: user.uid,
+          type: 'expense',
+          method: 'Transfer',
+          description: `Transfer to ${scannedUserId}`,
+          amount: parsedAmount,
+          createdAt: now,
+          counterpartUserId: scannedUserId
         });
 
-        setSuccessMessage('Transfer successful!');
-        setAmount('');
-        setScannedUserId(null);
+        // Receiver Record (Income)
+        const receiverTxRef = firestore().collection('transactions').doc();
+        transaction.set(receiverTxRef, {
+          userId: scannedUserId,
+          type: 'income',
+          method: 'Transfer',
+          description: `Received from ${user.uid}`,
+          amount: parsedAmount,
+          createdAt: now,
+          counterpartUserId: user.uid
+        });
+      });
+
+      setSuccessMessage('Transfer successful!');
+      setAmount('');
+      setScannedUserId(null);
     } catch (e: any) {
-        console.error("Transfer failed", e);
-        setErrorMessage(e.message || "Transfer failed");
+      console.error("Transfer failed", e);
+      setErrorMessage(e.message || "Transfer failed");
     } finally {
-        setTransferring(false);
-        setConfirmVisible(false);
+      setTransferring(false);
+      setConfirmVisible(false);
     }
   };
+
 
   const selectedCard = useMemo(
     () => cards.find(c => c.id === selectedCardId) || cards[0],

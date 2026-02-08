@@ -7,6 +7,7 @@ import {MaterialIcons} from '@react-native-vector-icons/material-icons';
 import WalletScreen from '../screens/WalletScreen';
 import CardScreen from '../screens/CardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import TransactionScreen from '../screens/TransactionScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -66,6 +67,30 @@ export default function MyTabs() {
           tabBarIcon: ({focused}) => (
             <MaterialIcons
               name="credit-card"
+              color={focused ? appColors.pink : appColors.black}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Transactions"
+        component={TransactionScreen}
+        options={{
+          tabBarLabel: ({focused}) => (
+            <Text
+              style={{
+                fontSize: 11,
+                fontFamily: fonts.IM,
+                paddingBottom: 6,
+                color: focused ? appColors.pink : appColors.black,
+              }}>
+              HISTORY
+            </Text>
+          ),
+          tabBarIcon: ({focused}) => (
+            <MaterialIcons
+              name="history"
               color={focused ? appColors.pink : appColors.black}
               size={24}
             />

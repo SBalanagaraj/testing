@@ -78,7 +78,7 @@ const WalletScreen = () => {
           const list = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
-          }));
+          })).filter((t: any) => t.method !== 'Transfer'); // Filter out transfers to show only top-ups
 
           // Sort by createdAt descending
           list.sort((a, b) => {
@@ -194,10 +194,16 @@ const WalletScreen = () => {
               color={appColors?.textColor || '#333'}
             />
           </View>
-          <View style={styles.transactionTextWrapper}>
+          <View style={[styles.transactionTextWrapper, { paddingRight: 10,width: '70%'}]}>
             <Text style={styles.transactionTitle}>{item.method}</Text>
             {!!item.description && (
-              <Text style={styles.transactionSubtitle}>{item.description}</Text>
+              <Text 
+                style={[styles.transactionSubtitle,{flex:1}]} 
+                numberOfLines={1} 
+                ellipsizeMode="tail"
+              >
+                {item.description}
+              </Text>
             )}
           </View>
         </View>

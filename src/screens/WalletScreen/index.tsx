@@ -371,7 +371,8 @@ const WalletScreen = () => {
             <Text style={styles.modalTitle}>Your QR Code</Text>
             <View style={styles.qrPreviewWrapper}>
               <View style={[styles.qrPreviewBox, {backgroundColor: 'white', padding: 20}]}>
-                <QRCode value={user.uid} size={200} />
+                <QRCode value={user.uid} size={200} />;
+
                 <Text style={[styles.qrUserId, {marginTop: 20}]}>{user.uid}</Text>
               </View>
             </View>
@@ -379,7 +380,7 @@ const WalletScreen = () => {
               style={[
                 // styles.modalButton,
                 styles.submitButton,
-                {paddingHorizontal: 10, borderRadius: 10,paddingVertical: 5},
+                {paddingHorizontal: 10, borderRadius: 10,paddingVertical: 5,marginTop:45},
                 // styles.qrCloseButton,
               ]}
               onPress={() => setQrVisible(false)}>
